@@ -1,52 +1,142 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-var (
-	MappingAtomicTypes = map[string]string{
-		"string":    "string",
-		"int":       "number",
-		"float64":   "number",
-		"bool":      "boolean",
-		"[]string":  "string[]",
-		"[]int":     "number[]",
-		"[]float64": "number[]",
-		"[]bool":    "boolean[]",
-		"struct":    "interface",
-		"map":       "Record<string, any>",
-	}
-)
+// Mapping of Go types to TypeScript types
+var typeMapping = map[string]string{
+	"int":     "number",
+	"int32":   "number",
+	"int64":   "number",
+	"float32": "number",
+	"float64": "number",
+	"string":  "string",
+	"bool":    "boolean",
+}
+
+// Store custom types defined in the Go file
+var customTypes = make(map[string]bool)
 
 func main() {
-	content := ReadFile("types.go")
-	tsContent := ContentToInterface(content)
-	CreateFile(nil, tsContent)
-}
+	srcFile := "types.go"
 
-func ReadFile(filePath string) string {
-	fmt.Println("Reading file...")
-	pwd, err := os.Getwd()
-
+	// Parse the Go source file
+	fset := token.NewFileSet()
+	node, err := parser.ParseFile(fset, srcFile, nil, parser.AllErrors)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatalf("Failed to parse file: %v", err)
 	}
 
-	path := filepath.Join(pwd, filePath)
-	content, err := os.ReadFile(path)
+	var tsInterfaces bytes.Buffer
 
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	return string(content)
+	// Traverse the AST to collect custom types and structs
+	ast.Inspect(node, func(n ast.Node) bool {
+		typeSpec, ok := n.(*ast.TypeSpec)
+		if !ok {
+			return true
+		}
+
+		// Track custom types
+		customTypes[typeSpec.Name.Name] = true
+		fmt.Printf("TypeSpec: %v\n", customTypes[typeSpec.Name.Name])
+
+		// Process structs
+		structType, ok := typeSpec.Type.(*ast.StructType)
+		if !ok {
+			return true
+		}
+
+		// Generate the TypeScript interface
+		structName := typeSpec.Name.Name
+		fields := parseFields(structType.Fields.List)
+		tsInterface := generateTSInterface(structName, fields)
+		tsInterfaces.WriteString(tsInterface + "\n")
+		return true
+	})
+
+	// Print the TypeScript interfaces
+	createFile(nil, tsInterfaces.String())
 }
 
-func CreateFile(fileName *string, content string) {
+// Parse fields from a Go struct and return a map of field names to TypeScript types
+func parseFields(fieldList []*ast.Field) map[string]string {
+	fields := make(map[string]string)
+	for _, field := range fieldList {
+		goType := fieldTypeToString(field.Type)
+
+		// Check if the type is a pointer
+		isPointer := strings.HasPrefix(goType, "*")
+		if isPointer {
+			goType = goType[1:] // Strip the pointer symbol for mapping
+		}
+
+		tsType := mapGoTypeToTSType(goType)
+
+		// Handle field names (can be multiple names for the same type)
+		for _, name := range field.Names {
+			fieldName := name.Name
+			if isPointer {
+				fieldName += "?" // Mark as optional in TypeScript
+			}
+			fields[fieldName] = tsType
+		}
+	}
+	return fields
+}
+
+// Convert Go AST field type to string representation
+func fieldTypeToString(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		return "*" + fieldTypeToString(t.X)
+	case *ast.ArrayType:
+		return "[]" + fieldTypeToString(t.Elt)
+	case *ast.MapType:
+		return fmt.Sprintf("map[%s]%s", fieldTypeToString(t.Key), fieldTypeToString(t.Value))
+	default:
+		return "unknown"
+	}
+}
+
+// Map Go type to TypeScript type, handling custom types
+func mapGoTypeToTSType(goType string) string {
+	if tsType, ok := typeMapping[goType]; ok {
+		return tsType
+	}
+	if strings.HasPrefix(goType, "[]") {
+		elementType := goType[2:]
+		return mapGoTypeToTSType(elementType) + "[]"
+	}
+	// Check if the type is a custom type
+	if customTypes[goType] {
+		return goType // Use the same name as the TypeScript interface
+	}
+	return goType // Fallback for unknown types
+}
+
+// Generate TypeScript interface string
+func generateTSInterface(structName string, fields map[string]string) string {
+	var builder strings.Builder
+	builder.WriteString(fmt.Sprintf("export interface %s {\n", structName))
+	for fieldName, tsType := range fields {
+		builder.WriteString(fmt.Sprintf("  %s: %s;\n", fieldName, tsType))
+	}
+	builder.WriteString("}\n")
+	return builder.String()
+}
+
+func createFile(fileName *string, content string) {
 	name := "types.ts"
 	fmt.Println("Creating file...")
 	path, err := os.Getwd()
@@ -72,68 +162,4 @@ func CreateFile(fileName *string, content string) {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-}
-
-func ContentToInterface(content string) string {
-	fmt.Println("Converting JSON to interface...")
-
-	tsContent := make([]string, 0)
-
-	for _, line := range strings.Split(content, "\n") {
-		var setWords = strings.Split(line, " ")
-		for idx, word := range setWords {
-			var peek = PeekSlice(setWords, idx+1)
-			var val string
-			if peek != nil {
-				val = *peek
-			}
-			if strings.Contains(word, "type") && strings.Contains(setWords[idx+2], "struct") {
-				structName := setWords[idx+1]
-				tsContent = append(tsContent, fmt.Sprintf("export interface %s {\n", structName))
-				setWords = ChopSlice(setWords, idx)
-			}
-			if valType, exists := MappingAtomicTypes[val]; exists {
-				tsContent = append(tsContent, fmt.Sprintf("\t%s: %s;\n", setWords[0], valType))
-				setWords = ChopSlice(setWords, 2)
-			} else if !exists {
-				// * this means that this is a custom struct
-				// * create it before the current struct
-				// newStruct := fmt.Sprintf("export interface %s {\n", val)
-				// * search about it in the file
-				// * if it doesn't exist, create it
-				/* _, line := SearchStruct(content, val)
-				if line == "" {
-					log.Fatalf("Error: %s struct not found", val)
-				}
-				tsContent = append(tsContent, fmt.Sprintf("\t%s: %s;\n", setWords[0], val))
-				tsContent = append(tsContent, newStruct)
-				tsContent = append(tsContent, "}\n") */
-			}
-
-			if strings.Contains(word, "}") {
-				tsContent = append(tsContent, "}\n")
-			}
-		}
-	}
-	return strings.Join(tsContent, "")
-}
-
-func SearchStruct(content string, structName string) (int, string) {
-	for i, line := range strings.Split(content, "\n") {
-		if strings.Contains(line, structName) {
-			return i, line
-		}
-	}
-	return -1, ""
-}
-
-func PeekSlice(slice []string, idx int) *string {
-	if idx < len(slice) {
-		return &slice[idx]
-	}
-	return nil
-}
-
-func ChopSlice(s []string, i int) []string {
-	return append(s[:i], s[i+1:]...)
 }
