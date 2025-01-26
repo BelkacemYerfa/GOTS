@@ -1,1 +1,10 @@
-"package main\r\n\r\ntype Person struct {\r\n\tName      string    `json:\"name\"`\r\n\tAge       int       `json:\"age\"`\r\n\tHobbies   []string  `json:\"hobbies\"`\r\n\tRelations Relations `json:\"relations\"`\r\n}\r\n\r\ntype Relations struct {\r\n\tParents  []string `json:\"parents\"`\r\n\tSiblings []string `json:\"siblings\"`\r\n\tChildren []string `json:\"children\"`\r\n}\r\n"
+export interface Person {
+		Name: string;
+		Age: number;
+		Hobbies: string[];
+}
+export interface Relations {
+		Parents: string[];
+		Siblings: string[];
+		Children: string[];
+}

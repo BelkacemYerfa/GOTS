@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -9,12 +8,25 @@ import (
 	"strings"
 )
 
-func main() {
-	fmt.Println("Hello, World!")
+var (
+	MappingAtomicTypes = map[string]string{
+		"string":    "string",
+		"int":       "number",
+		"float64":   "number",
+		"bool":      "boolean",
+		"[]string":  "string[]",
+		"[]int":     "number[]",
+		"[]float64": "number[]",
+		"[]bool":    "boolean[]",
+		"struct":    "interface",
+		"map":       "Record<string, any>",
+	}
+)
 
+func main() {
 	content := ReadFile("types.go")
-	jsonContent := StructToJSON(content)
-	CreateFile(nil, jsonContent)
+	tsContent := ContentToInterface(content)
+	CreateFile(nil, tsContent)
 }
 
 func ReadFile(filePath string) string {
@@ -25,15 +37,12 @@ func ReadFile(filePath string) string {
 		log.Fatalf("Error: %v", err)
 	}
 
-	fmt.Println("Current directory: ", pwd)
 	path := filepath.Join(pwd, filePath)
 	content, err := os.ReadFile(path)
 
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-
-	fmt.Println("File content: ", string(content))
 	return string(content)
 }
 
@@ -45,8 +54,6 @@ func CreateFile(fileName *string, content string) {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-
-	fmt.Println("Current directory: ", path)
 
 	if fileName != nil {
 		name = *fileName
@@ -67,22 +74,66 @@ func CreateFile(fileName *string, content string) {
 	}
 }
 
-func StructToJSON(s interface{}) string {
-	fmt.Println("Converting struct to JSON...")
-	bytes, err := json.Marshal(s)
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-
-	return string(bytes)
-}
-
-func JSONToInterface(jsonString string) string {
+func ContentToInterface(content string) string {
 	fmt.Println("Converting JSON to interface...")
-	for _, line := range strings.Split(jsonString, "\n") {
-		for _, word := range strings.Split(line, " ") {
-			println(line, word)
+
+	tsContent := make([]string, 0)
+
+	for _, line := range strings.Split(content, "\n") {
+		var setWords = strings.Split(line, " ")
+		for idx, word := range setWords {
+			var peek = PeekSlice(setWords, idx+1)
+			var val string
+			if peek != nil {
+				val = *peek
+			}
+			if strings.Contains(word, "type") && strings.Contains(setWords[idx+2], "struct") {
+				structName := setWords[idx+1]
+				tsContent = append(tsContent, fmt.Sprintf("export interface %s {\n", structName))
+				setWords = ChopSlice(setWords, idx)
+			}
+			if valType, exists := MappingAtomicTypes[val]; exists {
+				tsContent = append(tsContent, fmt.Sprintf("\t%s: %s;\n", setWords[0], valType))
+				setWords = ChopSlice(setWords, 2)
+			} else if !exists {
+				// * this means that this is a custom struct
+				// * create it before the current struct
+				// newStruct := fmt.Sprintf("export interface %s {\n", val)
+				// * search about it in the file
+				// * if it doesn't exist, create it
+				/* _, line := SearchStruct(content, val)
+				if line == "" {
+					log.Fatalf("Error: %s struct not found", val)
+				}
+				tsContent = append(tsContent, fmt.Sprintf("\t%s: %s;\n", setWords[0], val))
+				tsContent = append(tsContent, newStruct)
+				tsContent = append(tsContent, "}\n") */
+			}
+
+			if strings.Contains(word, "}") {
+				tsContent = append(tsContent, "}\n")
+			}
 		}
 	}
-	return ""
+	return strings.Join(tsContent, "")
+}
+
+func SearchStruct(content string, structName string) (int, string) {
+	for i, line := range strings.Split(content, "\n") {
+		if strings.Contains(line, structName) {
+			return i, line
+		}
+	}
+	return -1, ""
+}
+
+func PeekSlice(slice []string, idx int) *string {
+	if idx < len(slice) {
+		return &slice[idx]
+	}
+	return nil
+}
+
+func ChopSlice(s []string, i int) []string {
+	return append(s[:i], s[i+1:]...)
 }
