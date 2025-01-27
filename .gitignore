@@ -1,3 +1,6 @@
 
 # ignores the build folder
 build
+
+# types folder
+types

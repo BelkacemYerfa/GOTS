@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 // Mapping of Go types to TypeScript types
@@ -17,18 +19,62 @@ var typeMapping = map[string]string{
 	"int":     "number",
 	"int32":   "number",
 	"int64":   "number",
+	"uint":    "number",
+	"uint32":  "number",
+	"uint64":  "number",
 	"float32": "number",
 	"float64": "number",
 	"string":  "string",
 	"bool":    "boolean",
 }
 
+// Command line flags
+var srcFile string
+var srcFolder string
+var outputFile string
+
 // Store custom types defined in the Go file
 var customTypes = make(map[string]bool)
 
-func main() {
-	srcFile := "types.go"
+var root = &cobra.Command{
+	Use:   "gots",
+	Short: "pipe the files to convert types from",
+	Long:  `pipe the files to convert types from`,
+	// TODO : make a function to that the file can't be inserted with the folder
+	Run: func(cmd *cobra.Command, args []string) {
+		if srcFile == "" && srcFolder == "" {
+			fmt.Println("No source file or folder provided, check the help command")
+			return
+		}
+		if srcFile != "" && srcFolder != "" {
+			fmt.Println("You can't provide both a file and a folder, just one")
+			return
+		}
+		switch true {
+		case srcFile != "":
+			transpile(srcFile, outputFile)
+		case srcFolder != "":
+			fmt.Println("Folder functionality, Coming soon...")
+		default:
+			fmt.Println("No source file or folder provided")
+		}
+	},
+}
 
+func Execute() error {
+	root.Flags().StringVarP(&srcFile, "src", "s", "", "source file to convert types from")
+	root.Flags().StringVarP(&srcFolder, "folder", "f", "", "source folder to convert types from")
+	root.Flags().StringVarP(&outputFile, "output", "o", "", "output file name")
+
+	// TODO : Support multi files through folders (input, output)
+	return root.Execute()
+}
+
+func main() {
+	Execute()
+}
+
+func transpile(srcFile, outputFile string) {
 	// Parse the Go source file
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, srcFile, nil, parser.AllErrors)
@@ -47,7 +93,6 @@ func main() {
 
 		// Track custom types
 		customTypes[typeSpec.Name.Name] = true
-		fmt.Printf("TypeSpec: %v\n", customTypes[typeSpec.Name.Name])
 
 		// Process structs
 		structType, ok := typeSpec.Type.(*ast.StructType)
@@ -64,7 +109,7 @@ func main() {
 	})
 
 	// Print the TypeScript interfaces
-	createFile(nil, tsInterfaces.String())
+	createFile(&outputFile, tsInterfaces.String())
 }
 
 // Parse fields from a Go struct and return a map of field names to TypeScript types
@@ -149,17 +194,43 @@ func createFile(fileName *string, content string) {
 		name = *fileName
 	}
 
-	file, err := os.Create(filepath.Join(path, name))
+	if strings.Contains(*fileName, "/") {
+		// * this means that the user has provided a path to the folder
 
-	if err != nil {
-		log.Fatalf("Error: %v", err)
+		splitted := strings.Split(*fileName, "/")
+		subPath := strings.Join(splitted[:len(splitted)-1], "/")
+		name = splitted[len(splitted)-1]
+
+		if _, err := os.Stat(subPath); os.IsNotExist(err) {
+			os.MkdirAll(subPath, os.ModePerm)
+		}
+
+		file, err := os.Create(filepath.Join(path, subPath, name))
+
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+
+		defer file.Close()
+
+		_, err = file.WriteString(content)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	} else {
+
+		file, err := os.Create(filepath.Join(path, name))
+
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+		defer file.Close()
+
+		_, err = file.WriteString(content)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
 	}
 
-	defer file.Close()
-
-	_, err = file.WriteString(content)
-
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
+	fmt.Println("Done")
 }
