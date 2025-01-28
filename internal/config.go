@@ -24,7 +24,7 @@ func NewConfig(filePath string) *Config {
 }
 
 func (c *Config) LoadContent() string {
-	file, err := os.OpenFile(c.FilePath, os.O_RDWR, 0644)
+	file, err := os.OpenFile(c.FilePath, os.O_RDONLY, 0644)
 
 	if err != nil {
 		log.Fatalf("Error: %v", err)

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"gots/internal"
 
@@ -20,7 +19,10 @@ var root = &cobra.Command{
 	Short: "pipe the files to convert types from",
 	Long:  `pipe the files to convert types from`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var ctx context.Context = context.Background()
+		// * load the config file
+		config := internal.NewConfig(configFile)
+		config.ParseContent()
+
 		if srcFile == "" && srcFolder == "" {
 			fmt.Println("No source file or folder provided, check the help command")
 			return
@@ -30,21 +32,15 @@ var root = &cobra.Command{
 			return
 		}
 
-		if configFile != "" {
-			config := internal.NewConfig(configFile)
-			config.ParseContent()
-			ctx = context.WithValue(ctx, "config", config)
-		}
-
 		switch true {
 		case srcFile != "":
-			transpiler := internal.NewTranspiler(srcFile, outputFile, ctx.Value("config").(*internal.Config))
+			transpiler := internal.NewTranspiler(srcFile, outputFile, config)
 			content := transpiler.Transpile()
 			internal.CreateFile(&outputFile, content)
 		case srcFolder != "":
 			Files := internal.MultiFile(srcFolder, recursiveTranspile)
 			for i, file := range Files {
-				transpiler := internal.NewTranspiler(file, outputFile, ctx.Value("config").(*internal.Config))
+				transpiler := internal.NewTranspiler(file, outputFile, config)
 				content := transpiler.Transpile()
 				if i == 0 {
 					internal.CreateFile(&outputFile, content)
@@ -62,7 +58,7 @@ func Execute() error {
 	root.Flags().StringVarP(&srcFile, "src", "s", "", "source file to convert types from")
 	root.Flags().StringVarP(&srcFolder, "folder", "f", "", "source folder to convert types from")
 	root.Flags().StringVarP(&outputFile, "output", "o", "", "output file name")
-	root.Flags().StringVarP(&configFile, "config", "c", "", "config file to use")
+	root.Flags().StringVarP(&configFile, "config", "c", "gots.yaml", "config file to use")
 	root.Flags().BoolVarP(&recursiveTranspile, "recursive", "r", false, "recursively transpile all nested files in the folder")
 	root.MarkFlagRequired("output")
 
