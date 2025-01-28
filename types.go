@@ -1,5 +1,7 @@
 package main
 
+import "gorm.io/gorm"
+
 type Person struct {
 	Name      string     `json:"name"`
 	Age       int        `json:"age"`
@@ -31,13 +33,14 @@ type (
 
 type (
 	Collection struct {
+		gorm.Model
 		Name       string      `json:"name"`
 		Components []Component `gorm:"foreignKey:CollectionID;" json:"components"`
 		Users      []User      `gorm:"many2many:user_collection;" json:"users"`
-		Frameworks string      `json:"frameworks"`
+		Frameworks []string    `json:"frameworks"`
 		Repository string      `json:"repository"`
 		Website    string      `json:"website"`
-		Tags       string      `json:"tags"`
+		Tags       []string    `json:"tags"`
 		Version    string      `json:"version"`
 		UpdateAt   string      `json:"update_at"`
 		// ! file will be stored on aws s3
@@ -45,6 +48,7 @@ type (
 	}
 )
 type User struct {
+	gorm.Model
 	Username     string       `gorm:"unique;not null" json:"username"`
 	Email        string       `gorm:"unique;not null" json:"email"`
 	AccessToken  string       `json:"access_token"`
@@ -54,6 +58,7 @@ type User struct {
 }
 
 type File struct {
+	gorm.Model
 	Path        string    `gorm:"not null" json:"path"`
 	Type        string    `gorm:"not null" json:"type"` // Type of file (e.g., component, utility, hook, etc.)
 	Content     string    `json:"content"`
@@ -64,6 +69,7 @@ type File struct {
 
 type (
 	CollectionDependency struct {
+		gorm.Model
 		ComponentID int       `gorm:"not null"`                     // Foreign key to Component
 		Component   Component `gorm:"constraint:OnDelete:CASCADE;"` // Enable cascading delete
 		Reference   string    `json:"reference"`
@@ -71,6 +77,7 @@ type (
 
 	// Dependency struct represents external dependencies (e.g., npm libs).
 	Dependency struct {
+		gorm.Model
 		Name        string    `json:"name"`
 		ComponentID int       `gorm:"not null"`                     // Foreign key to Component
 		Component   Component `gorm:"constraint:OnDelete:CASCADE;"` // Enable cascading delete
@@ -78,12 +85,14 @@ type (
 
 	// UiDependency struct represents UI-specific dependencies (e.g., shadcn libs).
 	UiDependency struct {
+		gorm.Model
 		Name        string    `json:"name"`
 		ComponentID int       `gorm:"not null"`                     // Foreign key to Component
 		Component   Component `gorm:"constraint:OnDelete:CASCADE;"` // Enable cascading delete
 	}
 
 	Version struct {
+		gorm.Model
 		VersionNumber uint64    `json:"version_number"`
 		Version       string    `json:"version"`
 		Component     Component `gorm:"constraint:OnDelete:CASCADE;"` // Enable cascading delete
@@ -92,6 +101,7 @@ type (
 
 	// Component struct represents a reusable unit within a collection.
 	Component struct {
+		gorm.Model
 		Name string `json:"name"`
 		// Type of the component (e.g., component, utility, hook, etc.)
 		Type string `json:"type"`
@@ -105,8 +115,8 @@ type (
 		// Collection Relationship
 		CollectionID int        `gorm:"not null"`                     // Foreign key to Collection
 		Collection   Collection `gorm:"constraint:OnDelete:CASCADE;"` // Enable cascading delete
-		Tags         string     `json:"tags"`
-		Frameworks   string     `json:"frameworks"`
+		Tags         []string   `json:"tags"`
+		Frameworks   []string   `json:"frameworks"`
 		Version      []Version  `gorm:"foreignKey:ComponentID;" json:"version"`
 	}
 )

@@ -1,9 +1,16 @@
+export interface gormModel {
+  UpdatedAt: Date;
+  DeletedAt: Date;
+  ID: number;
+  CreatedAt: Date;
+}
+
 export interface Person {
-  Relations?: Relations;
-  Happy: boolean;
   Name: string;
   Age: number;
   Hobbies: string[];
+  Relations?: Relations;
+  Happy: boolean;
 }
 
 export interface Relations {
@@ -25,20 +32,20 @@ export interface HEHE {
   Age: number;
 }
 
-export interface Collection {
-  UpdateAt: string;
-  ReadmeUrl: string;
+export interface Collection extends gormModel {
   Components: Component[];
-  Repository: string;
   Website: string;
   Version: string;
+  UpdateAt: string;
+  ReadmeUrl: string;
   Name: string;
   Users: User[];
-  Frameworks: string;
-  Tags: string;
+  Frameworks: string[];
+  Repository: string;
+  Tags: string[];
 }
 
-export interface User {
+export interface User extends gormModel {
   RefreshToken: string;
   Avatar: string;
   Collections: Collection[];
@@ -47,7 +54,7 @@ export interface User {
   AccessToken: string;
 }
 
-export interface File {
+export interface File extends gormModel {
   Path: string;
   Type: string;
   Content: string;
@@ -56,43 +63,43 @@ export interface File {
   Component: Component;
 }
 
-export interface CollectionDependency {
+export interface CollectionDependency extends gormModel {
   Component: Component;
   Reference: string;
   ComponentID: number;
 }
 
-export interface Dependency {
+export interface Dependency extends gormModel {
   Component: Component;
   Name: string;
   ComponentID: number;
 }
 
-export interface UiDependency {
+export interface UiDependency extends gormModel {
+  Component: Component;
   Name: string;
   ComponentID: number;
-  Component: Component;
 }
 
-export interface Version {
-  Component: Component;
-  ComponentID: number;
+export interface Version extends gormModel {
   VersionNumber: number;
   Version: string;
+  Component: Component;
+  ComponentID: number;
 }
 
-export interface Component {
-  CollectionID: number;
-  Collection: Collection;
-  Frameworks: string;
+export interface Component extends gormModel {
+  Frameworks: string[];
   Version: Version[];
-  Name: string;
-  UiDependencies: UiDependency[];
-  CollectionDependencies: CollectionDependency[];
   Doc: string;
-  Tags: string;
   Type: string;
   Dependencies: Dependency[];
+  UiDependencies: UiDependency[];
+  CollectionDependencies: CollectionDependency[];
   Files: File[];
+  CollectionID: number;
+  Collection: Collection;
+  Name: string;
+  Tags: string[];
 }
 
