@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"GOTS/internal"
 	"context"
 	"fmt"
+	"gots/internal"
 
 	"github.com/spf13/cobra"
 )
@@ -13,12 +13,12 @@ var srcFile string
 var srcFolder string
 var outputFile string
 var configFile string
+var recursiveTranspile bool
 
 var root = &cobra.Command{
 	Use:   "gots",
 	Short: "pipe the files to convert types from",
 	Long:  `pipe the files to convert types from`,
-	// TODO : make a function to that the file can't be inserted with the folder
 	Run: func(cmd *cobra.Command, args []string) {
 		var ctx context.Context = context.Background()
 		if srcFile == "" && srcFolder == "" {
@@ -32,17 +32,26 @@ var root = &cobra.Command{
 
 		if configFile != "" {
 			config := internal.NewConfig(configFile)
-			config.LoadContent()
 			config.ParseContent()
-
 			ctx = context.WithValue(ctx, "config", config)
 		}
 
 		switch true {
 		case srcFile != "":
-			internal.Transpile(srcFile, outputFile, ctx.Value("config").(*internal.Config))
+			transpiler := internal.NewTranspiler(srcFile, outputFile, ctx.Value("config").(*internal.Config))
+			content := transpiler.Transpile()
+			internal.CreateFile(&outputFile, content)
 		case srcFolder != "":
-			fmt.Println("Folder functionality, Coming soon...")
+			Files := internal.MultiFile(srcFolder, recursiveTranspile)
+			for i, file := range Files {
+				transpiler := internal.NewTranspiler(file, outputFile, ctx.Value("config").(*internal.Config))
+				content := transpiler.Transpile()
+				if i == 0 {
+					internal.CreateFile(&outputFile, content)
+				} else {
+					internal.UpdateFile(&outputFile, content)
+				}
+			}
 		default:
 			fmt.Println("No source file or folder provided")
 		}
@@ -54,7 +63,7 @@ func Execute() error {
 	root.Flags().StringVarP(&srcFolder, "folder", "f", "", "source folder to convert types from")
 	root.Flags().StringVarP(&outputFile, "output", "o", "", "output file name")
 	root.Flags().StringVarP(&configFile, "config", "c", "", "config file to use")
-	root.MarkFlagRequired("src")
+	root.Flags().BoolVarP(&recursiveTranspile, "recursive", "r", false, "recursively transpile all nested files in the folder")
 	root.MarkFlagRequired("output")
 
 	return root.Execute()

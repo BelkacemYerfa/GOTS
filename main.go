@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GOTS/cmd"
+	"gots/cmd"
 )
 
 func main() {

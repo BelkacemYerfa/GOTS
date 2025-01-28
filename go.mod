@@ -1,4 +1,4 @@
-module GOTS
+module gots
 
 go 1.23.3
 
