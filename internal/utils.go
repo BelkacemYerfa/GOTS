@@ -38,10 +38,21 @@ func MapGoTypeToTSType(goType string, customTypes map[string]bool) string {
 	if tsType, ok := TypeMapping[goType]; ok {
 		return tsType
 	}
+	// * for arrays
 	if strings.HasPrefix(goType, "[]") {
 		elementType := goType[2:]
 		return MapGoTypeToTSType(elementType, customTypes) + "[]"
 	}
+
+	// * for go maps
+	if strings.HasPrefix(goType, "map") {
+		elements := strings.Split(goType[3:], "]")
+		key := strings.ReplaceAll(elements[0], "[", "")
+		value := elements[1]
+
+		return fmt.Sprintf("Record<%s , %s>", MapGoTypeToTSType(key, customTypes), MapGoTypeToTSType(value, customTypes))
+	}
+
 	// Check if the type is a custom type
 	if customTypes[goType] {
 		return goType // Use the same name as the TypeScript interface

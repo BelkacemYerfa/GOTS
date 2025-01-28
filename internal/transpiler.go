@@ -31,11 +31,20 @@ func NewTranspiler(srcFile, outputFile string, config *Config) *Transpiler {
 
 // Transpile orchestrates the entire transpilation process
 func (t *Transpiler) Transpile() string {
+
+	f := File{
+		filename: t.OutputFile,
+	}
+	f.ReadFile()
+
 	tsInterfaces := &strings.Builder{}
 
 	// Process external types
 	externalTS := t.handleExternalTypes()
-	tsInterfaces.WriteString(externalTS)
+	if !strings.Contains(f.content, strings.Split(externalTS, "\n")[0]) {
+		fmt.Printf("%s %s", tsInterfaces, strings.Split(externalTS, "\n"))
+		tsInterfaces.WriteString(externalTS)
+	}
 
 	// Parse and transpile Go file
 	goFileTS := t.transpileFile(t.SourceFile)
