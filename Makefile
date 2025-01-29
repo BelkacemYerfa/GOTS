@@ -1,7 +1,7 @@
 GO=go
 
 bin:
-	$(GO) build -o build/ main.go
+	$(GO) build -o build/gots.exe main.go
 
 run :
 	$(GO) run main.go

@@ -31,6 +31,7 @@ var TypeMapping = map[string]string{
 	"Int":         "string",
 	"IP":          "string",
 	"URL":         "string",
+	"StringSlice": "string[]",
 }
 
 // Map Go type to TypeScript type, handling custom types

@@ -42,7 +42,6 @@ func (t *Transpiler) Transpile() string {
 	// Process external types
 	externalTS := t.handleExternalTypes()
 	if !strings.Contains(f.content, strings.Split(externalTS, "\n")[0]) {
-		fmt.Printf("%s %s", tsInterfaces, strings.Split(externalTS, "\n"))
 		tsInterfaces.WriteString(externalTS)
 	}
 
