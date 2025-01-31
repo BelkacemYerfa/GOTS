@@ -55,7 +55,7 @@ func (t *Transpiler) Transpile() string {
 // handleExternalTypes processes embedded types and generates TypeScript interfaces
 func (t *Transpiler) handleExternalTypes() string {
 
-	// ? first check if the type is used in the file or not
+	// ? first check if the type is used in the file or not before doing this
 	tempFile := ".custom_types.go"
 	defer os.Remove(tempFile) // Ensure cleanup of the temporary file
 
@@ -97,8 +97,8 @@ func (t *Transpiler) handleExternalTypes() string {
 			return true
 		}
 
-		fields, embedded := t.parseFields(structType.Fields.List)
-		tsInterface := t.generateTSInterface(typeSpec.Name.Name, fields, embedded)
+		fields, fieldKeys, embedded := t.parseFields(structType.Fields.List)
+		tsInterface := t.generateTSInterface(typeSpec.Name.Name, fields, fieldKeys, embedded)
 		tsInterfaces.WriteString(tsInterface + "\n")
 		return true
 	})
@@ -128,8 +128,8 @@ func (t *Transpiler) transpileFile(srcFile string) string {
 			return true
 		}
 
-		fields, embedded := t.parseFields(structType.Fields.List)
-		tsInterface := t.generateTSInterface(typeSpec.Name.Name, fields, embedded)
+		fields, fieldKeys, embedded := t.parseFields(structType.Fields.List)
+		tsInterface := t.generateTSInterface(typeSpec.Name.Name, fields, fieldKeys, embedded)
 		tsInterfaces.WriteString(tsInterface + "\n")
 		return true
 	})
@@ -138,8 +138,9 @@ func (t *Transpiler) transpileFile(srcFile string) string {
 }
 
 // parseFields extracts fields and embedded types from a struct
-func (t *Transpiler) parseFields(fieldList []*ast.Field) (map[string]string, []any) {
+func (t *Transpiler) parseFields(fieldList []*ast.Field) (map[string]string, []string, []any) {
 	fields := make(map[string]string)
+	fieldKeys := make([]string, 0)
 	embedded := []any{}
 
 	for _, field := range fieldList {
@@ -166,9 +167,11 @@ func (t *Transpiler) parseFields(fieldList []*ast.Field) (map[string]string, []a
 				fieldName += "?" // Optional in TypeScript
 			}
 			fields[fieldName] = tsType
+			// to follow the order of the keys in the map
+			fieldKeys = append(fieldKeys, fieldName)
 		}
 	}
-	return fields, embedded
+	return fields, fieldKeys, embedded
 }
 
 // fieldTypeToString converts a Go field type to its string representation
@@ -194,7 +197,7 @@ func (t *Transpiler) fieldTypeToString(expr ast.Expr) string {
 }
 
 // generateTSInterface creates a TypeScript interface from Go struct data
-func (t *Transpiler) generateTSInterface(name string, fields map[string]string, embedded []any) string {
+func (t *Transpiler) generateTSInterface(name string, fields map[string]string, fieldKeys []string, embedded []any) string {
 	var builder strings.Builder
 	builder.WriteString(fmt.Sprintf("export interface %s", name))
 	if len(embedded) > 0 {
@@ -209,8 +212,8 @@ func (t *Transpiler) generateTSInterface(name string, fields map[string]string, 
 		builder.WriteString(fmt.Sprintf(" extends %s", strings.Join(extends, ", ")))
 	}
 	builder.WriteString(" {\n")
-	for fieldName, tsType := range fields {
-		builder.WriteString(fmt.Sprintf("  %s: %s;\n", fieldName, tsType))
+	for _, fieldName := range fieldKeys {
+		builder.WriteString(fmt.Sprintf("  %s: %s;\n", fieldName, fields[fieldName]))
 	}
 	builder.WriteString("}\n")
 	return builder.String()
