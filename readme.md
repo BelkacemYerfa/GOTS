@@ -1,4 +1,12 @@
-# GOTS
+<p align="center">
+<img alt="Go Status Checker" src="./gots-logo.svg" width="250" height="100" style="max-width: 100%;">
+</p>
+
+<p align="center">
+A little transpiler to generate interface types from go struct types
+</p>
+
+---
 
 **GOTS** is a tool that generates TypeScript interfaces from Go struct definitions (transpiler). It supports embedded types, custom types, and third-party package types. This project is built to work with Go Modules and leverages `go/parser` and `go/types` for analysis and type-checking.
 
