@@ -10,13 +10,6 @@ A little transpiler to generate interface types from go struct types
 
 **GOTS** is a tool that generates TypeScript interfaces from Go struct definitions (transpiler). It supports embedded types, custom types, and third-party package types. This project is built to work with Go Modules and leverages `go/parser` and `go/types` for analysis and type-checking.
 
-## Features
-
-- Transpiles Go structs into TypeScript interfaces.
-- Supports embedded and custom types.
-- Handles external types from Go Modules.
-- Optional fields for pointer types in Go.
-
 ## Installation
 
 1. **Clone the repository:**
@@ -80,6 +73,55 @@ gots -f <pathname-to-folder> -r -o <output-path>
 ```bash
 gots -s ./example.go -o ./output.ts
 ```
+
+## Features Checklist
+
+### ✅ Implemented Features
+
+- [x] **Generate TypeScript Interfaces**
+  - Transpiles Go structs into TypeScript interfaces.
+- [x] **Embedded and Custom Types**
+  - Supports Go embedded structs and custom types.
+- [x] **External Types from Go Modules**
+  - Handles third-party package types.
+- [x] **Optional Fields for Pointer Types**
+  - Pointer fields in Go are translated into optional fields in TypeScript.
+- [x] **Recursive Mode**
+  - Transpiles all files in a directory recursively.
+- [x] **Custom Configuration File**
+  - Supports YAML configuration files for defining third-party type mappings.
+
+---
+
+### 🚀 Upcoming Features
+
+#### **General Enhancements**
+
+- [ ] **Multi-package Support in YAML File**
+  - Extend configuration file to support multiple packages.
+- [ ] **Comments Transpiler**
+  - Add a flag (`-tc` | `--transpile-comments`) to generate TypeScript documentation from Go comments.
+- [ ] **Multi-Output Target**
+  - Add a flag (`-mo` | `--multi-output`) for generating files at multiple locations or with custom file names.
+- [ ] **File Versioning**
+  - Embed version information in the generated files.
+- [ ] **Support for TypeScript `type` Definitions**
+  - Add support for generating TypeScript `type` in addition to `interface`.
+- [ ] **Improved Error Handling**
+  - Enhance error messages and validation for better developer experience.
+
+#### **Mode Enhancements**
+
+- [ ] **Enhanced Recursive Mode**
+  - Add filtering options:
+    - Include files by patterns (e.g., `*.go`).
+    - Exclude specific files or directories (`-ex` | `--exclude testdata/*`).
+  - Add recursive filtering rules in the YAML configuration.
+
+#### **Advanced Type Support**
+
+- [ ] **Enum Support (Go → TS)**
+  - Automatically convert Go enums into TypeScript union types.
 
 ## Configuration file
 

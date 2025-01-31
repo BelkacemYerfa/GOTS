@@ -29,6 +29,31 @@ func NewTranspiler(srcFile, outputFile string, config *Config) *Transpiler {
 	}
 }
 
+// * Today's work
+// TODO : write tests for different types (Recursive, Union , Generics, ...etc)
+
+// * Upcoming features
+// TODO : support multi packages in yaml file
+// TODO : support comments transpiler (flag -tc (--transpile-comments))
+// TODO : support multi output target	(flag -mo (--multi-output))
+// TODO : support file versioning
+// TODO : support types in addition to interfaces
+// TODO : support better error handling
+// TODO : Enhanced recursive mode
+// 		Filtering files
+// ?	exclude certain files (-ex | --exclude testdata/*)
+// ? 	support in config file
+
+// * Types to support
+// TODO : Enum Support from go to ts
+//	Example : type UserRole int
+// 		const (
+//     	Admin UserRole = iota
+//     	User
+//     	Guest
+// 		)
+//	Ts : type UserRole = "Admin" | "User" | "Guest";
+
 // Transpile orchestrates the entire transpilation process
 func (t *Transpiler) Transpile() string {
 
