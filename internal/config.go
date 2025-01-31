@@ -19,7 +19,8 @@ type Config struct {
 
 func NewConfig(filePath string) *Config {
 	return &Config{
-		FilePath: filePath,
+		FilePath:      filePath,
+		EmbeddedTypes: make(map[string]any),
 	}
 }
 
@@ -53,7 +54,6 @@ func (c *Config) LoadContent() string {
 }
 
 func (c *Config) ParseContent() {
-	// TODO : parse the content
 	parseContent := make(map[string]any)
 	contentToParse := c.LoadContent()
 	if contentToParse == "" {

@@ -1,0 +1,4 @@
+config:
+  gorm.Model:
+    pkg: "time" # support multi packages
+    value: 'type gormModel struct { ID uint `gorm:"primarykey"`; CreatedAt time.Time; UpdatedAt time.Time; DeletedAt time.Time `gorm:"index"`}'

@@ -58,7 +58,7 @@ func Execute() error {
 	root.Flags().StringVarP(&srcFile, "src", "s", "", "source file to convert types from")
 	root.Flags().StringVarP(&srcFolder, "folder", "f", "", "source folder to convert types from")
 	root.Flags().StringVarP(&outputFile, "output", "o", "", "output file name")
-	root.Flags().StringVarP(&configFile, "config", "c", "gots.yaml", "config file to use")
+	root.Flags().StringVarP(&configFile, "config", "c", "./gots.yaml", "config file to use")
 	root.Flags().BoolVarP(&recursiveTranspile, "recursive", "r", false, "recursively transpile all nested files in the folder")
 	root.MarkFlagRequired("output")
 
